@@ -19,29 +19,23 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
+	"github.com/fatedier/frp/pkg/config"
+	"github.com/fatedier/frp/pkg/consts"
 
-	"github.com/fatedier/frp/models/config"
-	"github.com/fatedier/frp/models/consts"
+	"github.com/spf13/cobra"
 )
 
 func init() {
-	httpCmd.PersistentFlags().StringVarP(&serverAddr, "server_addr", "s", "127.0.0.1:7000", "frp server's address")
-	httpCmd.PersistentFlags().StringVarP(&user, "user", "u", "", "user")
-	httpCmd.PersistentFlags().StringVarP(&protocol, "protocol", "p", "tcp", "tcp or kcp")
-	httpCmd.PersistentFlags().StringVarP(&token, "token", "t", "", "auth token")
-	httpCmd.PersistentFlags().StringVarP(&logLevel, "log_level", "", "info", "log level")
-	httpCmd.PersistentFlags().StringVarP(&logFile, "log_file", "", "console", "console or file path")
-	httpCmd.PersistentFlags().IntVarP(&logMaxDays, "log_max_days", "", 3, "log file reversed days")
+	RegisterCommonFlags(httpCmd)
 
 	httpCmd.PersistentFlags().StringVarP(&proxyName, "proxy_name", "n", "", "proxy name")
-	httpCmd.PersistentFlags().StringVarP(&localIp, "local_ip", "i", "127.0.0.1", "local ip")
+	httpCmd.PersistentFlags().StringVarP(&localIP, "local_ip", "i", "127.0.0.1", "local ip")
 	httpCmd.PersistentFlags().IntVarP(&localPort, "local_port", "l", 0, "local port")
 	httpCmd.PersistentFlags().StringVarP(&customDomains, "custom_domain", "d", "", "custom domain")
 	httpCmd.PersistentFlags().StringVarP(&subDomain, "sd", "", "", "sub domain")
 	httpCmd.PersistentFlags().StringVarP(&locations, "locations", "", "", "locations")
-	httpCmd.PersistentFlags().StringVarP(&httpUser, "http_user", "", "admin", "http auth user")
-	httpCmd.PersistentFlags().StringVarP(&httpPwd, "http_pwd", "", "admin", "http auth password")
+	httpCmd.PersistentFlags().StringVarP(&httpUser, "http_user", "", "", "http auth user")
+	httpCmd.PersistentFlags().StringVarP(&httpPwd, "http_pwd", "", "", "http auth password")
 	httpCmd.PersistentFlags().StringVarP(&hostHeaderRewrite, "host_header_rewrite", "", "", "host header rewrite")
 	httpCmd.PersistentFlags().BoolVarP(&useEncryption, "ue", "", false, "use encryption")
 	httpCmd.PersistentFlags().BoolVarP(&useCompression, "uc", "", false, "use compression")
@@ -53,26 +47,26 @@ var httpCmd = &cobra.Command{
 	Use:   "http",
 	Short: "Run frpc with a single http proxy",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := parseClientCommonCfg(CfgFileTypeCmd, "")
+		clientCfg, err := parseClientCommonCfg(CfgFileTypeCmd, "")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		cfg := &config.HttpProxyConf{}
+		cfg := &config.HTTPProxyConf{}
 		var prefix string
 		if user != "" {
 			prefix = user + "."
 		}
 		cfg.ProxyName = prefix + proxyName
-		cfg.ProxyType = consts.HttpProxy
-		cfg.LocalIp = localIp
+		cfg.ProxyType = consts.HTTPProxy
+		cfg.LocalIP = localIP
 		cfg.LocalPort = localPort
 		cfg.CustomDomains = strings.Split(customDomains, ",")
 		cfg.SubDomain = subDomain
 		cfg.Locations = strings.Split(locations, ",")
-		cfg.HttpUser = httpUser
-		cfg.HttpPwd = httpPwd
+		cfg.HTTPUser = httpUser
+		cfg.HTTPPwd = httpPwd
 		cfg.HostHeaderRewrite = hostHeaderRewrite
 		cfg.UseEncryption = useEncryption
 		cfg.UseCompression = useCompression
@@ -86,7 +80,7 @@ var httpCmd = &cobra.Command{
 		proxyConfs := map[string]config.ProxyConf{
 			cfg.ProxyName: cfg,
 		}
-		err = startService(proxyConfs, nil)
+		err = startService(clientCfg, proxyConfs, nil, "")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
